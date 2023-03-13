@@ -1,0 +1,83 @@
+version: "3"
+
+networks:
+  gitea:
+    external: false
+  devnet:
+    driver: bridge
+    
+volumes:
+  data:
+  
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - 8080:8080
+      - 50000:50000
+    networks:
+      - devnet
+#    environment:
+#        - CASC_JENKINS_CONFIG=/jenkins_config/jenkins.yaml
+  nexus:
+    image: sonatype/nexus
+    container_name: nexus
+    ports:
+      - "8081:8081"
+    networks:
+      - devnet
+    volumes:
+      - "/opt/nexus/:/var/lib/nexus"
+      
+  gitea:
+    image: gitea/gitea:1.18.5
+    container_name: gitea
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+    restart: always
+    networks:
+      - gitea
+      - devnet
+    volumes:
+      - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+     - "3000:3000"
+     - "222:22"
+     
+  sonarqube:
+    image: sonarqube:6.3.1
+    container_name: sonarqube
+    restart: always
+    ports:
+    - "9000:9000"
+    networks:
+      - devnet
+    depends_on:
+      - sonardb
+    links:
+      - sonardb
+    environment:
+    - SONARQUBE_JDBC_URL=jdbc:postgresql://sonardb:5432/sonar
+    - SONARQUBE_JDBC_USERNAME=sonar
+    - SONARQUBE_JDBC_PASSWORD=sonar
+    volumes:
+      - "/opt/sonar/:/var/lib/sonar"
+      
+  sonardb:
+    networks:
+      - devnet
+    image: postgres:9.6.1
+    container_name: postgres
+    restart: always
+    environment:
+    - POSTGRES_USER=sonar
+    - POSTGRES_PASSWORD=sonar
+    - POSTGRESQL_DB=sonar
+    ports:
+      - "5432:5432"
+    volumes:
+      - "/opt/postgres:/var/lib/postgresql"
