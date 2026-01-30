@@ -1,0 +1,44 @@
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Jenkins runtime data
+jenkins_home/
+!jenkins_home/.gitkeep
+
+# Gitea runtime data
+gitea/
+
+# Docker volumes (if mounted locally)
+nexus-data/
+sonarqube-data/
+postgres-data/
+
+# E2E test artifacts
+e2e/test-results/
+e2e/node_modules/
+e2e/playwright-report/
+e2e/.playwright/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+dist/
+build/

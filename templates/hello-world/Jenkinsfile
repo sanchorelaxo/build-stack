@@ -1,0 +1,48 @@
+pipeline {
+  agent any
+
+  environment {
+    SONAR_HOST_URL = 'http://sonarqube:9000'
+    NEXUS_BASE_URL = 'http://nexus:8081'
+    NEXUS_REPO = 'web'
+    NEXUS_PATH = 'hello-world/index.html'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Sonar Scan') {
+      steps {
+        sh '''
+          /opt/sonar-scanner/bin/sonar-scanner \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
+            -Dsonar.login=admin \
+            -Dsonar.password=admin
+        '''
+      }
+    }
+
+    stage('Publish to Nexus') {
+      steps {
+        sh '''
+          test -f index.html
+
+          if [ ! -f /nexus-data/admin.password ]; then
+            echo "Missing /nexus-data/admin.password (is nexus-data mounted?)" >&2
+            exit 1
+          fi
+
+          PASS=$(tr -d '\n' < /nexus-data/admin.password)
+          URL=${NEXUS_BASE_URL}/repository/${NEXUS_REPO}/${NEXUS_PATH}
+
+          echo "Uploading to ${URL}"
+          curl -fsS -u admin:${PASS} --upload-file index.html "${URL}"
+        '''
+      }
+    }
+  }
+}
