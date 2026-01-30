@@ -465,9 +465,10 @@ test('SDLC flow: Gitea setup -> repo+issue -> Jenkins seed+pipeline -> Nexus -> 
   // Simple index.html with hello world
   await addFile('index.html', '<html><body><h1>hello world</h1></body></html>');
 
-  // Jenkinsfile for the pipeline - publishes to Nexus, deployer syncs to nginx
+  // Jenkinsfile for the pipeline - runs SonarQube scan then publishes to Nexus
   // Use single line to avoid newline issues when typing
-  await addFile('Jenkinsfile', "pipeline { agent any; stages { stage('Publish to Nexus') { steps { sh 'PASS=$(cat /nexus-data/admin.password) && curl -fsS -u admin:$PASS --upload-file index.html http://nexus:8081/repository/web/hello-world/index.html' } } } }");
+  // Note: sonarPass comes from loginAndEnsureSonarProject() which determined the current working password
+  await addFile('Jenkinsfile', `pipeline { agent any; stages { stage('SonarQube Scan') { steps { sh '/opt/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=http://sonarqube:9000 -Dsonar.projectKey=hello-world -Dsonar.projectName=hello-world -Dsonar.sources=. -Dsonar.login=admin -Dsonar.password=${sonarPass}' } } stage('Publish to Nexus') { steps { sh 'PASS=\\$(cat /nexus-data/admin.password) && curl -fsS -u admin:\\$PASS --upload-file index.html http://nexus:8081/repository/web/hello-world/index.html' } } } }`);
 
   // 5) Jenkins: login, run seed-job with repo URL, then run generated pipeline
   await page.goto(`${JENKINS_URL}/login`, { waitUntil: 'domcontentloaded' });
